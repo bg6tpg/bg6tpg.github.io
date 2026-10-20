@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QSL 卡片记录</title>
+</head>
+<body>
+
+<style>
+:root{--bg:#eef2f7;--card:#fff;--line:#e3e9f2;--ink:#0f172a;--muted:#64748b;
+      --pri:#2563eb;--ok:#059669;--warn:#b45309}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+     font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+     -webkit-font-smoothing:antialiased}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+
+/* 顶部 */
+.hero{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 55%,#3b82f6 100%);
+      color:#fff;padding:34px 0 34px;box-shadow:0 6px 26px rgba(30,58,138,.28)}
+.hero .wrap{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.hero-main{display:flex;align-items:center;gap:16px}
+.logo{width:58px;height:58px;border-radius:16px;background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center;
+      font-weight:800;letter-spacing:1.5px;font-size:17px;flex:none}
+.hero h1{margin:0;font-size:22px;font-weight:700;letter-spacing:.3px;line-height:1.35}
+.hero-sub{margin:5px 0 0;font-size:13px;color:rgba(255,255,255,.84)}
+.hero-right{font-size:12px;color:rgba(255,255,255,.78);text-align:right;line-height:1.8}
+
+/* 统计 */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:14px;
+       margin:-28px 0 22px;position:relative;z-index:2}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 18px;
+      box-shadow:0 6px 18px rgba(15,23,42,.09)}
+.stat-num{font-size:24px;font-weight:800;color:var(--pri);line-height:1.2}
+.stat-label{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* 筛选栏 */
+.filters{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;
+         display:flex;gap:10px;flex-wrap:wrap;box-shadow:0 2px 10px rgba(15,23,42,.05)}
+.filters input,.filters select{font:inherit;padding:9px 12px;border:1px solid var(--line);
+         border-radius:10px;background:#f8fafc;color:var(--ink);outline:none;transition:.15s}
+.filters input:focus,.filters select:focus{border-color:var(--pri);background:#fff;
+         box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.filters input[type=search]{flex:1 1 220px;min-width:170px}
+.filters select{min-width:118px;cursor:pointer}
+.btn-ghost{padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;
+           cursor:pointer;font:inherit;font-size:13px;color:var(--muted);transition:.15s}
+.btn-ghost:hover{border-color:var(--pri);color:var(--pri)}
+.result{margin:16px 2px 10px;font-size:13px;color:var(--muted)}
+
+/* 卡片网格 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(312px,1fr));gap:16px;padding-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px 15px;
+      box-shadow:0 2px 10px rgba(15,23,42,.05);transition:.18s;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(15,23,42,.13)}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#3b82f6}
+.card.recv::before{background:#10b981}
+.card.both::before{background:linear-gradient(180deg,#3b82f6,#10b981)}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
+.call{font-size:20px;font-weight:800;letter-spacing:.6px;
+      font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+.person{font-size:13px;color:var(--muted);margin-top:1px}
+.badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:none}
+.tag{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+.tag.pending{background:#fef3c7;color:#b45309}
+.tag.done-sent{background:#dbeafe;color:#1d4ed8}
+.tag.done-recv{background:#d1fae5;color:#047857}
+.rows{display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;font-size:13px;margin-top:12px}
+.row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed #eef2f7;padding-bottom:4px}
+.row .k{color:var(--muted);flex:none}
+.row .v{font-weight:600;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note{margin-top:11px;font-size:12.5px;color:#475569;background:#f8fafc;border-radius:9px;
+      padding:8px 11px;border-left:3px solid #cbd5e1;word-break:break-word}
+.empty{text-align:center;color:var(--muted);padding:64px 20px;font-size:14px}
+.foot{text-align:center;color:#94a3b8;font-size:12px;padding:28px 20px 46px;line-height:1.9}
+@media (max-width:560px){
+  .rows{grid-template-columns:1fr}
+  .hero h1{font-size:18px}
+}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-main">
+      <div class="logo">QSL</div>
+      <div>
+        <h1 id="heroTitle">QSL 卡片记录</h1>
+        <p class="hero-sub" id="heroSub"></p>
+      </div>
+    </div>
+    <div class="hero-right" id="heroRight"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="stats" id="stats"></section>
+
+  <section class="filters">
+    <input id="q" type="search" placeholder="搜索呼号 / 姓名 / 备注 …">
+    <select id="fBand"></select>
+    <select id="fMode"></select>
+    <select id="fDir">
+      <option value="">全部方向</option>
+      <option value="寄出">寄出</option>
+      <option value="收到">收到</option>
+      <option value="双向">双向</option>
+    </select>
+    <select id="fStatus">
+      <option value="">全部状态</option>
+      <option value="待寄出">待寄出</option>
+      <option value="已寄出">已寄出</option>
+      <option value="待收到">待收到</option>
+      <option value="已收到">已收到</option>
+    </select>
+    <select id="fSort">
+      <option value="date-desc">通联日期 ↓</option>
+      <option value="date-asc">通联日期 ↑</option>
+      <option value="call">呼号 A → Z</option>
+      <option value="sent-desc">寄出日期 ↓</option>
+      <option value="recv-desc">收到日期 ↓</option>
+    </select>
+    <button id="btnReset" class="btn-ghost" type="button">重置</button>
+  </section>
+
+  <p class="result" id="result"></p>
+  <section class="grid" id="grid"></section>
+  <p class="empty" id="empty" hidden="">没有符合条件的记录</p>
+</main>
+
+<footer class="foot" id="foot"></footer>
+
+<script>
+var DATA = {"profile":{"myCall":"BG6TPG","myName":"liuzhipeng","myQth":"鄂州","myEmail":"bg6tpg@126.com","myRecipient":"云鹏","myAddress":"湖北省鄂州市华容区葛店经济开发区电商大道新城汇隽小区门卫室代收","myZip":"436030","myQslNote":"直邮 (Direct) 请附 SASE 及回邮邮资，收到后会尽快回复。POTA / SOTA / OTA 等活动通联会特别标注，欢迎确认。"},"records":[{"callsign":"BA4VFN","name":"","qsoDate":"2026-10-19","band":"","mode":"","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-20","receivedDate":"","note":"EYEBALL QSO","id":"mvfd58w4gle3b0","createdAt":1792420934980},{"callsign":"BI9COB","name":"","qsoDate":"","band":"","mode":"","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-20","receivedDate":"","note":"EYEBALL QSO","id":"mvfd5zusx610qj","createdAt":1792420969924},{"callsign":"BH6TLM","name":"","qsoDate":"2026-08-23","band":"70cm","mode":"FM","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-20","receivedDate":"","note":"","id":"mvfd7nph579uq6","createdAt":1792421047493},{"callsign":"BH6RKU","name":"","qsoDate":"","band":"","mode":"","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-20","receivedDate":"","note":"EYEBALL QSO","id":"mvfd8dod79cpba","createdAt":1792421081149},{"callsign":"BD1BIX","name":"","qsoDate":"2026-10-11","band":"20m","mode":"SSB","direction":"双向","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-18","receivedDate":"2026-10-15","note":"","id":"mvfd9c670bbzfe","createdAt":1792421125855},{"callsign":"BI8AD","name":"","qsoDate":"2026-10-11","band":"20m","mode":"SSB","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-18","receivedDate":"","note":"","id":"mvfda5utdfix13","createdAt":1792421164325},{"callsign":"BA7MGJ","name":"","qsoDate":"2026-10-17","band":"20m","mode":"SSB","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-18","receivedDate":"","note":"","id":"mvfdallyb1zdfx","createdAt":1792421184742},{"callsign":"BA3PPE","name":"","qsoDate":"2026-10-17","band":"20m","mode":"SSB","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-18","receivedDate":"","note":"","id":"mvfdb7b976i5o7","createdAt":1792421212869},{"callsign":"BD1DHI","name":"","qsoDate":"2026-10-17","band":"20m","mode":"SSB","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-18","receivedDate":"","note":"","id":"mvfdbmbddvmdiq","createdAt":1792421232313},{"callsign":"BG5GXT","name":"","qsoDate":"2026-10-17","band":"20m","mode":"SSB","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-20","receivedDate":"","note":"","id":"mvfenl8hhyyyz9","createdAt":1792423470401},{"callsign":"BI3UTU","name":"","qsoDate":"2026-10-17","band":"20m","mode":"SSB","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-20","receivedDate":"","note":"","id":"mvfeq6ppaif4k2","createdAt":1792423591549},{"callsign":"BI7MCC","name":"","qsoDate":"2026-10-17","band":"20m","mode":"SSB","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-20","receivedDate":"","note":"","id":"mvff21snnfduer","createdAt":1792424145047},{"callsign":"BI9DAD","name":"","qsoDate":"2026-10-17","band":"20m","mode":"SSB","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-20","receivedDate":"","note":"","id":"mvff8i5z61jhfm","createdAt":1792424446199},{"callsign":"BI9CNJ","name":"","qsoDate":"2026-10-17","band":"20m","mode":"SSB","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-20","receivedDate":"","note":"","id":"mvffdzhebt0b12","createdAt":1792424701922},{"callsign":"BD6KIR","name":"","qsoDate":"","band":"","mode":"","direction":"寄出","rstSent":"","rstReceived":"","via":"直邮","sentDate":"2026-10-20","receivedDate":"","note":"EYEBALL QSO","id":"mvfg0l6plx5llx","createdAt":1792425756481}],"generatedAt":"2026/10/20 15:45:18"};
+
+(function () {
+  'use strict';
+
+  var records = (DATA && DATA.records) || [];
+  var profile = (DATA && DATA.profile) || {};
+  var BAND_ORDER = ['160m','80m','60m','40m','30m','20m','17m','15m','12m','10m','6m','2m','70cm','23cm'];
+
+  function $(id) { return document.getElementById(id); }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ---------- 页头 ---------- */
+  var titleText = (profile.myCall ? profile.myCall + ' · ' : '') + 'QSL 卡片记录';
+  document.title = titleText;
+  $('heroTitle').textContent = titleText;
+  var sub = [profile.myName, profile.myQth, profile.myEmail].filter(Boolean);
+  $('heroSub').textContent = sub.length ? sub.join(' · ') : '业余无线电 QSL 卡片交换记录';
+  $('heroRight').innerHTML = '共 ' + records.length + ' 条记录<br>生成于 ' + esc(DATA.generatedAt || '—');
+
+  /* ---------- 状态推导 ---------- */
+  function statusList(r) {
+    var out = [];
+    var dir = r.direction || '寄出';
+    var isSent = (dir === '寄出' || dir === '双向');
+    var isRecv = (dir === '收到' || dir === '双向');
+    if (isSent) out.push(r.sentDate ? { t: '已寄出', c: 'done-sent' } : { t: '待寄出', c: 'pending' });
+    if (isRecv) out.push(r.receivedDate ? { t: '已收到', c: 'done-recv' } : { t: '待收到', c: 'pending' });
+    return out;
+  }
+
+  /* ---------- 统计 ---------- */
+  function renderStats() {
+    var sentDone = 0, recvDone = 0, calls = {}, bands = {};
+    records.forEach(function (r) {
+      if (r.sentDate) sentDone++;
+      if (r.receivedDate) recvDone++;
+      if (r.callsign) calls[String(r.callsign).toUpperCase()] = 1;
+      if (r.band) bands[r.band] = 1;
+    });
+    var items = [
+      { n: records.length, l: '总记录' },
+      { n: sentDone, l: '已寄出' },
+      { n: recvDone, l: '已收到' },
+      { n: Object.keys(calls).length, l: '呼号数' },
+      { n: Object.keys(bands).length, l: '波段数' }
+    ];
+    $('stats').innerHTML = items.map(function (it) {
+      return '<div class="stat"><div class="stat-num">' + it.n + '</div><div class="stat-label">' + it.l + '</div></div>';
+    }).join('');
+  }
+
+  /* ---------- 筛选下拉 ---------- */
+  function uniq(arr) {
+    var seen = {}, out = [];
+    arr.forEach(function (v) { if (v && !seen[v]) { seen[v] = 1; out.push(v); } });
+    return out;
+  }
+  function fillSelect(el, values, placeholder) {
+    var html = '<option value="">' + placeholder + '</option>';
+    values.forEach(function (v) { html += '<option value="' + esc(v) + '">' + esc(v) + '</option>'; });
+    el.innerHTML = html;
+  }
+
+  var bandList = uniq(records.map(function (r) { return r.band; }))
+    .sort(function (a, b) {
+      var ia = BAND_ORDER.indexOf(a), ib = BAND_ORDER.indexOf(b);
+      if (ia < 0) ia = 999;
+      if (ib < 0) ib = 999;
+      return ia - ib || a.localeCompare(b);
+    });
+  var modeList = uniq(records.map(function (r) { return r.mode; })).sort();
+
+  fillSelect($('fBand'), bandList, '全部波段');
+  fillSelect($('fMode'), modeList, '全部模式');
+
+  /* ---------- 状态与筛选 ---------- */
+  var state = { q: '', band: '', mode: '', dir: '', status: '', sort: 'date-desc' };
+
+  function applyFilters() {
+    var q = state.q.trim().toLowerCase();
+    return records.filter(function (r) {
+      if (state.band && r.band !== state.band) return false;
+      if (state.mode && r.mode !== state.mode) return false;
+      if (state.dir && (r.direction || '寄出') !== state.dir) return false;
+      if (state.status) {
+        var st = statusList(r).map(function (x) { return x.t; });
+        if (st.indexOf(state.status) < 0) return false;
+      }
+      if (q) {
+        var hay = [r.callsign, r.name, r.note, r.band, r.mode, r.via, r.rstSent, r.rstReceived]
+          .join(' ').toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    });
+  }
+
+  function sortRecords(arr) {
+    var a = arr.slice();
+    var cmp;
+    switch (state.sort) {
+      case 'date-asc':  cmp = function (x, y) { return (x.qsoDate || '').localeCompare(y.qsoDate || ''); }; break;
+      case 'call':      cmp = function (x, y) { return (x.callsign || '').localeCompare(y.callsign || ''); }; break;
+      case 'sent-desc': cmp = function (x, y) { return (y.sentDate || '').localeCompare(x.sentDate || ''); }; break;
+      case 'recv-desc': cmp = function (x, y) { return (y.receivedDate || '').localeCompare(x.receivedDate || ''); }; break;
+      default:          cmp = function (x, y) { return (y.qsoDate || '').localeCompare(x.qsoDate || ''); };
+    }
+    a.sort(cmp);
+    return a;
+  }
+
+  /* ---------- 卡片 ---------- */
+  function cardHtml(r) {
+    var dir = r.direction || '寄出';
+    var cls = dir === '双向' ? 'both' : (dir === '寄出' ? 'sent' : 'recv');
+    var tags = statusList(r).map(function (s) {
+      return '<span class="tag ' + s.c + '">' + s.t + '</span>';
+    }).join('');
+
+    var rows = [];
+    function row(k, v) {
+      if (!v) return;
+      rows.push('<div class="row"><span class="k">' + k + '</span><span class="v">' + esc(v) + '</span></div>');
+    }
+    row('通联日期', r.qsoDate);
+    row('波段', r.band);
+    row('模式', r.mode);
+    if (r.rstSent || r.rstReceived) {
+      row('RST', (r.rstSent || '—') + ' / ' + (r.rstReceived || '—'));
+    }
+    row('寄送方式', r.via);
+    row('寄出日期', r.sentDate);
+    row('收到日期', r.receivedDate);
+
+    var h = '<article class="card ' + cls + '">';
+    h += '<div class="card-head"><div>';
+    h += '<div class="call">' + esc(r.callsign) + '</div>';
+    if (r.name) h += '<div class="person">' + esc(r.name) + '</div>';
+    h += '</div><div class="badges">' + tags + '</div></div>';
+    h += '<div class="rows">' + rows.join('') + '</div>';
+    if (r.note) h += '<div class="note">' + esc(r.note) + '</div>';
+    h += '</article>';
+    return h;
+  }
+
+  /* ---------- 渲染 ---------- */
+  function render() {
+    var list = sortRecords(applyFilters());
+    $('result').textContent = '显示 ' + list.length + ' / ' + records.length + ' 条记录';
+    $('grid').innerHTML = list.map(cardHtml).join('');
+    $('empty').hidden = list.length > 0;
+  }
+
+  /* ---------- 事件 ---------- */
+  $('q').addEventListener('input', function (e) { state.q = e.target.value; render(); });
+  $('fBand').addEventListener('change', function (e) { state.band = e.target.value; render(); });
+  $('fMode').addEventListener('change', function (e) { state.mode = e.target.value; render(); });
+  $('fDir').addEventListener('change', function (e) { state.dir = e.target.value; render(); });
+  $('fStatus').addEventListener('change', function (e) { state.status = e.target.value; render(); });
+  $('fSort').addEventListener('change', function (e) { state.sort = e.target.value; render(); });
+
+  $('btnReset').addEventListener('click', function () {
+    state = { q: '', band: '', mode: '', dir: '', status: '', sort: 'date-desc' };
+    $('q').value = '';
+    $('fBand').value = '';
+    $('fMode').value = '';
+    $('fDir').value = '';
+    $('fStatus').value = '';
+    $('fSort').value = 'date-desc';
+    render();
+  });
+
+  /* ---------- 启动 ---------- */
+  $('foot').innerHTML = '本页面为静态展示页，内容只读 · 数据生成于 ' + esc(DATA.generatedAt || '—');
+  renderStats();
+  render();
+})();
+</script>
+
+</body>
+</html>
